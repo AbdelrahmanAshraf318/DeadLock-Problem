@@ -1,13 +1,14 @@
 package Deadlock;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class BankerAlgorithm implements Strategies{
 
-	private Integer[] availableInstance; /** The work vector **/
-	private Integer[][] maximumDemand;
-	private Integer[][] allocatedInstance;
-	private Integer[][] remainingNeed;
+	private ArrayList<Integer> availableInstance; /** The work vector **/
+	private int[][] maximumDemand;
+	private int[][] allocatedInstance;
+	private int[][] remainingNeed;
 	private boolean[] finish; 
 	private ArrayList<Integer> arrangeProcesses;/** To know which process has
 	finished firstly **/
@@ -20,12 +21,13 @@ public class BankerAlgorithm implements Strategies{
 
 	public BankerAlgorithm(int numOfProcesses , int numOfResources) {
 		super();
-		this.availableInstance = new Integer[this.numOfResources];
+		this.availableInstance = new ArrayList<Integer>();
+		this.arrangeProcesses = new ArrayList<Integer>();
 		this.numOfProcesses = numOfProcesses;
 		this.numOfResources = numOfResources;
-		this.maximumDemand = new Integer[this.numOfProcesses][this.numOfResources];
-		this.allocatedInstance = new Integer[this.numOfProcesses][this.numOfResources];
-		this.remainingNeed = new Integer[this.numOfProcesses][this.numOfResources];
+		this.maximumDemand = new int[this.numOfProcesses][this.numOfResources];
+		this.allocatedInstance = new int[this.numOfProcesses][this.numOfResources];
+		this.remainingNeed = new int[this.numOfProcesses][this.numOfResources];
 		this.finish = new boolean[this.numOfProcesses];
 	}
 
@@ -37,17 +39,22 @@ public class BankerAlgorithm implements Strategies{
 			this.finish[i] = false;
 		}
 	}
+	
+	public void addAvailableInstance(int available)
+	{
+		this.availableInstance.add(available); 
+	}
 
-	public void addInstanceForSpecificResource(Integer instance , int i) {
+	/*public void addInstanceForSpecificResource(int instance , int i) {
 		this.availableInstance[i] = instance;
 	}
-	
-	public void addMaxDemand(Integer maxDemand , int whichRow , int whichCol)
+	*/
+	public void addMaxDemand(int maxDemand , int whichRow , int whichCol)
 	{
 		this.maximumDemand[whichRow][whichCol] = maxDemand;
 	}
 	
-	public void addAllocatedInstance(Integer allocated , int whichRow , int whichCol)
+	public void addAllocatedInstance(int allocated , int whichRow , int whichCol)
 	{
 		this.allocatedInstance[whichRow][whichCol] = allocated;
 	}
@@ -58,8 +65,9 @@ public class BankerAlgorithm implements Strategies{
 		{
 			for(int j=0 ; j<numOfResources ; j++)
 			{
-				this.remainingNeed[i][j] = this.maximumDemand[i][j] -
-						this.allocatedInstance[i][j];
+				int remain = 0;
+				remain = this.maximumDemand[i][j] - this.allocatedInstance[i][j];
+				this.remainingNeed[i][j] = remain;
 			}
 		}
 	}
@@ -74,15 +82,53 @@ public class BankerAlgorithm implements Strategies{
 		return true;
 	}
 	
+	/** This function to print the processes after finishing their jobs **/
+	private void printTheSequenceOfProcesses()
+	{
+		System.out.print("<");
+		for(int i=0 ; i<this.numOfProcesses ; i++)
+		{
+			System.out.print("P" + this.arrangeProcesses.get(i));
+			System.out.print("   "); 
+		}
+		System.out.print(">");
+	}
+	
+	private boolean checkIfAllProcessesFinishInCurrentState()
+	{
+		int counter = 0;
+		for(int i = 0 ; i<this.numOfProcesses ; i++)
+		{
+			if(this.finish[i] == false)
+			{
+				counter++;
+			}
+		}
+		
+		if(counter == this.numOfProcesses)
+		{
+			return true;/** All processes do not terminate **/
+		}
+		return false;
+	}
+	
 	@Override
 	public void doAlgorithm() {
 		
 		initialFinishVectorToFalse();
+		for(int i=0 ; i<this.numOfProcesses ; i++)
+		{
+			System.out.println(this.finish[i]);
+		}
 		boolean passed = false; 
 		calcRemainingNeed();
+		int state = 0;
+		boolean statePassed = false;
 		do
 		{
 			ArrayList<Boolean> checkForResource;
+			System.out.println("State-" + state);
+			System.out.println("***************");
 			for(int i = 0 ; i<this.numOfProcesses ; i++)
 			{
 				if(this.finish[i] == false)
@@ -91,7 +137,7 @@ public class BankerAlgorithm implements Strategies{
 					boolean pass = true;
 					for(int j=0 ; j<this.numOfResources ; j++)
 					{	
-						if(this.remainingNeed[i][j] <= this.availableInstance[j])
+						if(this.remainingNeed[i][j] <= this.availableInstance.get(j))
 						{
 							checkForResource.add(true);
 						}
@@ -112,14 +158,56 @@ public class BankerAlgorithm implements Strategies{
 						this.arrangeProcesses.add(i);
 						for(int k=0 ; k<this.numOfResources ; k++)
 						{
-							this.availableInstance[k] += this.allocatedInstance[i][k]; 
+							int newInstance = this.availableInstance.get(k);
+							newInstance += this.allocatedInstance[i][k];
+							this.availableInstance.set(k , newInstance);
 						}
 						finish[i] = true;
+						System.out.println("Process-" + i + " Can take all its requests in state-" + state);
+						for(int n = 0 ; n<this.numOfResources ; n++)
+						{
+							/** When the maximumDemand is equal to zero
+							 this means that this process has released all resources **/
+							this.maximumDemand[i][n] = 0;
+						}
+					}
+					else
+					{
+						System.out.println("Process-" + i + " Cannot take all its requests in state-" + state);
+					}
+					/*** Print all the data structures in this state ****/
+					System.out.println("Maximum Demand for all processes in state-"
+							+ state);
+					for(int n1 = 0 ; n1<this.numOfProcesses ; n1++)
+					{
+						System.out.print("P-" + i + ": ");
+						for(int n2 = 0 ; n2<this.numOfResources ; n2++)
+						{
+							System.out.print(this.maximumDemand[n1][n2] + "  ");
+						}
+						System.out.println();
+					}
+					System.out.println("******************************");
+					System.out.println("Available Instances for all Resources in state-"
+							+ state);
+					for(int n=0 ; n<this.numOfResources ; n++)
+					{
+						System.out.println("R-" + n + ": " + this.availableInstance.get(n));
 					}
 				}
 			}
+			state++;
 			passed = checkWhetherTheProcessesFinish();
+			statePassed = checkIfAllProcessesFinishInCurrentState();
+			if(statePassed == true)
+			{
+				System.out.println("The system denies all requests");
+				return;
+			}
 		}while(passed == false);
+		
+		System.out.print("The system will approve all requests by the following sequence:");
+		printTheSequenceOfProcesses();
 	}
 
 }
