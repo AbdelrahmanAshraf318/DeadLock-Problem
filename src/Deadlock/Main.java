@@ -59,6 +59,37 @@ public class Main {
 		
 		/** apply the banker algorithm **/
 		banker.doAlgorithm();
+		System.out.println();
+		System.out.println("***************************");
+		/*** See whether the user wants to continue or not ****/
+		String keep = "";
+		System.out.println("Write (exit , RQ , RL)");
+		keep = input.next();
+		input.nextLine();
+		if(keep.equals("exit"))
+		{
+			System.out.println("Thanks for using our app");
+			return;
+		}
+		if(keep.equals("RQ"))
+		{
+			int numOfProcess = 0;
+			ArrayList<Integer> request = new ArrayList<Integer>();
+			System.out.println("Enter the number of process (zero based): ");
+			numOfProcess = input.nextInt();
+			
+			for(int counter = 0 ; counter<numOfResources ; counter++)
+			{
+				int requestResource = 0;
+				System.out.print("Enter request number-" + counter + " ");
+				requestResource = input.nextInt();
+				request.add(requestResource);
+				System.out.println();
+			}
+			banker.requestResources(request, numOfProcess); 
+			return;
+		}
 	}
+	
 
 }
