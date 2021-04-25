@@ -45,10 +45,7 @@ public class BankerAlgorithm implements Strategies{
 		this.availableInstance.add(available); 
 	}
 
-	/*public void addInstanceForSpecificResource(int instance , int i) {
-		this.availableInstance[i] = instance;
-	}
-	*/
+	
 	public void addMaxDemand(int maxDemand , int whichRow , int whichCol)
 	{
 		this.maximumDemand[whichRow][whichCol] = maxDemand;
@@ -94,33 +91,58 @@ public class BankerAlgorithm implements Strategies{
 		System.out.print(">");
 	}
 	
-	private boolean checkIfAllProcessesFinishInCurrentState()
+	
+
+	private int[][] storeAllocatedArray(int[][] arr)
 	{
-		int counter = 0;
-		for(int i = 0 ; i<this.numOfProcesses ; i++)
+		for(int i=0 ; i<this.numOfProcesses ; i++)
 		{
-			if(this.finish[i] == false)
+			for(int j=0 ; j<this.numOfResources ; j++)
 			{
-				counter++;
+				arr[i][j] = this.allocatedInstance[i][j];
 			}
 		}
-		
-		if(counter == this.numOfProcesses)
-		{
-			return true;/** All processes do not terminate **/
-		}
-		return false;
+		return arr;
 	}
+	
+	
+	
 	
 	@Override
 	public void doAlgorithm() {
 		
+		ArrayList<Integer> storedAvailableInstance = new ArrayList<Integer>(); /** The work vector **/
+		for(int i=0 ; i<this.numOfResources ; i++)
+		{
+			storedAvailableInstance.add(this.availableInstance.get(i));
+		}
+		
+		int[][] storedMaximumDemand = new int[this.numOfProcesses][this.numOfResources];
+		for(int i=0 ; i<this.numOfProcesses ; i++)
+		{
+			for(int j=0 ; j<this.numOfResources ; j++)
+			{
+				storedMaximumDemand[i][j] = this.maximumDemand[i][j];
+			}
+		}
+		
+		int[][] storedAllocatedInstance = new int[this.numOfProcesses][this.numOfResources];
+		storedAllocatedInstance = storeAllocatedArray(storedAllocatedInstance);
+		
+		int[][] storedRemaining = new int[this.numOfProcesses][this.numOfResources];
+		for(int i=0 ; i<this.numOfProcesses ; i++)
+		{
+			for(int j=0 ; j<this.numOfResources ; j++)
+			{
+				storedRemaining[i][j] = this.allocatedInstance[i][j];
+			}
+		}
+		/////////////////////////////////
 		initialFinishVectorToFalse();
 		boolean passed = false; 
 		calcRemainingNeed();
 		int state = 0;
-		boolean statePassed = false;
-		do
+		while(state < this.numOfProcesses)
 		{
 			ArrayList<Boolean> checkForResource;
 			System.out.println("State-" + state);
@@ -133,7 +155,7 @@ public class BankerAlgorithm implements Strategies{
 					boolean pass = true;
 					for(int j=0 ; j<this.numOfResources ; j++)
 					{	
-						if(this.remainingNeed[i][j] <= this.availableInstance.get(j))
+						if(storedRemaining[i][j] <= storedAvailableInstance.get(j))
 						{
 							checkForResource.add(true);
 						}
@@ -152,11 +174,12 @@ public class BankerAlgorithm implements Strategies{
 					if(pass == true)
 					{
 						this.arrangeProcesses.add(i);
+						
 						for(int k=0 ; k<this.numOfResources ; k++)
 						{
-							int newInstance = this.availableInstance.get(k);
-							newInstance += this.allocatedInstance[i][k];
-							this.availableInstance.set(k , newInstance);
+							int newInstance = storedAvailableInstance.get(k);
+							newInstance += storedAllocatedInstance[i][k];
+							storedAvailableInstance.set(k , newInstance);
 						}
 						finish[i] = true;
 						System.out.println("Process-" + i + " Can take all its requests in state-" + state);
@@ -164,51 +187,58 @@ public class BankerAlgorithm implements Strategies{
 						{
 							/** When the maximumDemand is equal to zero
 							 this means that this process has released all resources **/
-							this.maximumDemand[i][n] = 0;
+							storedMaximumDemand[i][n] = 0;
+						}
+						/*** Print all the data structures in this state ****/
+						System.out.println("Maximum Demand for all processes in state-"
+								+ state);
+						for(int n1 = 0 ; n1<this.numOfProcesses ; n1++)
+						{
+							System.out.print("P-" + n1 + ": ");
+							for(int n2 = 0 ; n2<this.numOfResources ; n2++)
+							{
+								System.out.print(storedMaximumDemand[n1][n2] + "  ");
+							}
+							System.out.println();
+						}
+						System.out.println("******************************");
+						System.out.println("Available Instances for all Resources in state-"
+								+ state);
+						for(int n=0 ; n<this.numOfResources ; n++)
+						{
+							System.out.println("R-" + n + ": " + storedAvailableInstance.get(n));
 						}
 					}
 					else
 					{
 						System.out.println("Process-" + i + " Cannot take all its requests in state-" + state);
 					}
-					/*** Print all the data structures in this state ****/
-					System.out.println("Maximum Demand for all processes in state-"
-							+ state);
-					for(int n1 = 0 ; n1<this.numOfProcesses ; n1++)
-					{
-						System.out.print("P-" + n1 + ": ");
-						for(int n2 = 0 ; n2<this.numOfResources ; n2++)
-						{
-							System.out.print(this.maximumDemand[n1][n2] + "  ");
-						}
-						System.out.println();
-					}
-					System.out.println("******************************");
-					System.out.println("Available Instances for all Resources in state-"
-							+ state);
-					for(int n=0 ; n<this.numOfResources ; n++)
-					{
-						System.out.println("R-" + n + ": " + this.availableInstance.get(n));
-					}
+					
 				}
 			}
-			state++;
-			passed = checkWhetherTheProcessesFinish();
-			statePassed = checkIfAllProcessesFinishInCurrentState();
-			if(statePassed == true)
+			if(state == this.numOfProcesses)
 			{
-				System.out.println("The system denies all requests");
-				return;
+				break;
 			}
-		}while(passed == false);
-		
-		System.out.print("The system will approve all requests by the following sequence:");
-		printTheSequenceOfProcesses();
+			state++;
+		}
+		boolean checkSafetyState = checkWhetherTheProcessesFinish();
+		if(checkSafetyState == true)
+		{
+			System.out.print("The system will approve all requests by the following sequence:");
+			printTheSequenceOfProcesses();
+		}
+		else
+		{
+			System.out.print("The system denied all requests , since it is in the unsafe state");
+		}
 	}
 	
 	
 	public void requestResources(ArrayList<Integer> request , int numOfProcess /** zero based **/)
 	{
+		
+		
 		ArrayList<Boolean> checkWhetherResourceLessThanRemain = new ArrayList<Boolean>();
 		ArrayList<Boolean> checkWhetherResourceLessThanAvailable = new ArrayList<Boolean>();
 		for(int i=0 ; i<this.numOfResources ; i++)
@@ -232,7 +262,7 @@ public class BankerAlgorithm implements Strategies{
 		}
 		if(pass == false)
 		{
-			System.out.println("The process has exceeded its maximum claim");
+			System.out.println("The system will not grant this request , since the resource request exceed the remainingNeed");
 			return;
 		}
 		else
@@ -259,8 +289,7 @@ public class BankerAlgorithm implements Strategies{
 			
 			if(pass2 == false)
 			{
-				System.out.println("The process must wait , since resoures are not available");
-				
+				System.out.println("The system will not grant this request , since the resource request exceed the availabelResource");
 			}
 			else
 			{
@@ -276,14 +305,57 @@ public class BankerAlgorithm implements Strategies{
 					this.allocatedInstance[numOfProcess][i] = calcNewAllocation;
 					
 					//////////////////////////////////////////
-					int calcNewRemain = this.remainingNeed[numOfProcess][i] + 
+					int calcNewRemain = this.remainingNeed[numOfProcess][i] - 
 							request.get(i);
 					this.remainingNeed[numOfProcess][i] = calcNewRemain;
-					
-					
+
 				}
-				System.out.println("The process will allocate its requests , since the system will be in the safe state");
-				return;
+				doAlgorithm();
+				boolean checkIfSafetyState = checkWhetherTheProcessesFinish();
+				if(checkIfSafetyState == true)
+				{
+					System.out.println("The system will grant this request");
+					for(int i=0 ; i<this.numOfResources ; i++)
+					{
+						int calcNewAvailable = this.availableInstance.get(i) + 
+								request.get(i);
+						this.availableInstance.set(i , calcNewAvailable);
+						
+						////////////////////////////////////////
+						int calcNewAllocation = this.allocatedInstance[numOfProcess][i] -
+								request.get(i);
+						this.allocatedInstance[numOfProcess][i] = calcNewAllocation;
+						
+						//////////////////////////////////////////
+						int calcNewRemain = this.remainingNeed[numOfProcess][i] +
+								request.get(i);
+						this.remainingNeed[numOfProcess][i] = calcNewRemain;
+						
+					}
+					return;
+				}
+				else
+				{
+					System.out.println("The system will not grant this request");
+					for(int i=0 ; i<this.numOfResources ; i++)
+					{
+						int calcNewAvailable = this.availableInstance.get(i) + 
+								request.get(i);
+						this.availableInstance.set(i , calcNewAvailable);
+						
+						////////////////////////////////////////
+						int calcNewAllocation = this.allocatedInstance[numOfProcess][i] -
+								request.get(i);
+						this.allocatedInstance[numOfProcess][i] = calcNewAllocation;
+						
+						//////////////////////////////////////////
+						int calcNewRemain = this.remainingNeed[numOfProcess][i] +
+								request.get(i);
+						this.remainingNeed[numOfProcess][i] = calcNewRemain;
+						
+					}
+					return;
+				}
 			}
 			return;
 		}
