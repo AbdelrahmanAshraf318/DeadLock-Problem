@@ -289,4 +289,54 @@ public class BankerAlgorithm implements Strategies{
 		}
 	}
 	
+	
+	public void releaseResource(ArrayList<Integer> release , int numOfProcess)
+	{
+		ArrayList<Boolean> checkWhetherResourceLessThanAllocated = new ArrayList<Boolean>();
+		
+		for(int i=0 ; i<this.numOfResources ; i++)
+		{
+			if(release.get(i) <= this.allocatedInstance[numOfProcess][i])
+			{
+				checkWhetherResourceLessThanAllocated.add(true);
+			}
+			else
+			{
+				checkWhetherResourceLessThanAllocated.add(false);
+			}
+		}
+		boolean pass = true;
+		for(int i=0 ; i<this.numOfResources ; i++)
+		{
+			if(checkWhetherResourceLessThanAllocated.get(i) == false)
+			{
+				pass = false;
+			}
+		}
+		if(pass == false)
+		{
+			System.out.println("The process has exceeded its maximum claim");
+			return;
+		}
+		else
+		{
+			for(int i=0 ; i<this.numOfResources ; i++)
+			{
+				int newAllocated = 0;
+				newAllocated = this.allocatedInstance[numOfProcess][i] - 
+						release.get(i);
+				this.allocatedInstance[numOfProcess][i] = newAllocated;
+			}
+			System.out.println("The releases resources are less than the allocated resource");
+			System.out.println("The new allocated resource for this process is :");
+			for(int i=0 ; i<this.numOfResources ; i++)
+			{
+				System.out.print("allocatedResource-" + i + " : " +
+			this.allocatedInstance[numOfProcess][i]);
+				System.out.println();
+			}
+			return;
+		}
+	}
+	
 }
